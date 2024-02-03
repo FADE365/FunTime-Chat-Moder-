@@ -29,7 +29,7 @@ public class ExampleMod
         }
 
         String message = event.getMessage().getString();
-        if (message.contains("test")) {
+        if (message.contains("test") || message.contains("test2") || message.contains("test3")) {
             String playerName = extractPlayerName(message);
             if (playerName != null && !playerName.isEmpty()) {
                 // Отправляем команду на сервер
