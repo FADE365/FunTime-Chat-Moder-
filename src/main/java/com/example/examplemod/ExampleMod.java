@@ -1,52 +1,112 @@
 package com.example.examplemod;
 
+import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
-import net.minecraft.util.text.ChatType;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 
-import java.util.UUID;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static net.minecraft.util.text.ChatType.CHAT;
 
-
-// The value here should match an entry in the META-INF/mods.toml file
 @Mod("examplemod")
 public class ExampleMod
 {
+    public String webhookUrl = "URL ТВОЕГО ВЕРБХУКА";
+    public List<List<String>> ListReactions = new ArrayList();
 
     public ExampleMod() {
         MinecraftForge.EVENT_BUS.register(this);
+
+        ListReactions.add(Arrays.asList( //Слова для мута на 60 сек
+                        "test1", "test2"
+                )
+        );
+        ListReactions.add(Arrays.asList( //Слова для мута на 15сек
+                        "test3", "test4"
+                )
+        );
     }
 
     @SubscribeEvent
     public void onChatReceived(ClientChatReceivedEvent event) {
-        if (event.getType() != CHAT) {
-            return; // Игнорировать, если это не сообщение чата
-        }
-
+        if (event.getType() != CHAT) return; // Игнорировать, если это не сообщение чата
         String message = event.getMessage().getString();
-        if (message.contains("test") || message.contains("test2") || message.contains("test3")) {
-            String playerName = extractPlayerName(message);
-            if (playerName != null && !playerName.isEmpty()) {
-                // Отправляем команду на сервер
-                Minecraft.getInstance().player.chat("/tempmute " + playerName + " 15m test -s");
+
+        String Nick = ExtractNick(message);
+        Detected(message, Nick, 0, 60);
+        Detected(message, Nick, 1, 15);
+
+    }
+
+    public void Detected(String MSG,String NICK, int INDEX, int TIME) {
+        for (String react : ListReactions.get(INDEX)) {
+            if ((MSG.contains(react.toLowerCase()) && (NICK != null && !NICK.isEmpty()))) {
+                Mute(NICK, 15, "Mute na " + TIME + "s");
             }
         }
     }
 
-    private String extractPlayerName(String message) {
+    public void Mute(String Nick, int Time, String Arg) {
+        String Command = "/tempmute " + Nick + " " + Time + "m " + Arg + " -s";
+        Minecraft.getInstance().player.sendMessage
+        (
+                new StringTextComponent("Player -> " + Nick + " mute for a reason : " + Arg), null
+        );
+        Minecraft.getInstance().player.chat(Command);
+
+        String discordMessage = "Player " + Nick + " was muted for " + Time + " minutes. Reason: " + Arg;
+        sendDiscordWebhook(discordMessage, webhookUrl);
+
+        Command = "";
+    }
+
+    private String ExtractNick(String message) {
         int bracketIndex = message.indexOf(']');
-        if (bracketIndex != -1 && message.length() > bracketIndex + 2) {
-            String afterBracket = message.substring(bracketIndex + 2); // Извлекаем часть сообщения после скобки и пробела
-            String[] words = afterBracket.split(" "); // Разделяем по пробелам
-            if (words.length > 0) {
-                return words[0]; // Первое слово будет именем игрока
+        // Убедитесь, что скобка найдена и это не последний символ сообщения
+        if (bracketIndex != -1 && message.length() > bracketIndex + 1) {
+            // Проверяем, стоит ли двоеточие перед ']'
+            if (message.charAt(bracketIndex - 1) == ':') {
+                // Если да, то используем '[' как опорный индекс
+                int openBracketIndex = message.lastIndexOf('[', bracketIndex);
+                if (openBracketIndex != -1) {
+                    return message.substring(openBracketIndex + 1, bracketIndex - 1).trim();
+                }
+            } else {
+                // Если нет, то берем слово после ']'
+                String afterBracket = message.substring(bracketIndex + 1).trim();
+                String[] words = afterBracket.split(" ");
+                if (words.length > 0) {
+                    return words[0].trim();
+                }
             }
         }
-        return "";
+        return null;
+    }
+
+    public void sendDiscordWebhook(String message, String webhookUrl) {
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
+            HttpPost httpPost = new HttpPost(webhookUrl);
+            httpPost.setHeader("Content-Type", "application/json");
+
+            JsonObject json = new JsonObject();
+            json.addProperty("content", message);
+
+            StringEntity entity = new StringEntity(json.toString());
+            httpPost.setEntity(entity);
+
+            client.execute(httpPost);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
