@@ -21,7 +21,7 @@ import static net.minecraft.util.text.ChatType.CHAT;
 @Mod("examplemod")
 public class ExampleMod
 {
-    public String webhookUrl = "URL ТВОЕГО ВЕРБХУКА";
+    public String webhookUrl = "https://discord.com/api/webhooks/1203458825676652554/6jhlKV6wFmS0mlS9E39qmeIMuTZv5B8uXoZFDy12nd2JoW8-OVLBu_Sz_Zy_NyvcqXiL";
     public List<List<String>> ListReactions = new ArrayList();
 
     public ExampleMod() {
@@ -39,7 +39,7 @@ public class ExampleMod
 
     @SubscribeEvent
     public void onChatReceived(ClientChatReceivedEvent event) {
-        if (event.getType() != CHAT) return; // Игнорировать, если это не сообщение чата
+        if (event.getType() != CHAT) return;
         String message = event.getMessage().getString();
 
         String Nick = ExtractNick(message);
@@ -50,8 +50,8 @@ public class ExampleMod
 
     public void Detected(String MSG,String NICK, int INDEX, int TIME) {
         for (String react : ListReactions.get(INDEX)) {
-            if ((MSG.contains(react.toLowerCase()) && (NICK != null && !NICK.isEmpty()))) {
-                Mute(NICK, 15, "Mute na " + TIME + "s");
+            if ((MSG.toLowerCase().contains(react.toLowerCase()) && (NICK != null && !NICK.isEmpty()))) {
+                Mute(NICK, TIME, "Mute na " + TIME + "s");
             }
         }
     }
@@ -64,7 +64,7 @@ public class ExampleMod
         );
         Minecraft.getInstance().player.chat(Command);
 
-        String discordMessage = "Player " + Nick + " was muted for " + Time + " minutes. Reason: " + Arg;
+        String discordMessage = "Player " + Nick + " was muted for " + Time + " seconds. Reason: " + Arg;
         sendDiscordWebhook(discordMessage, webhookUrl);
 
         Command = "";
@@ -72,14 +72,19 @@ public class ExampleMod
 
     private String ExtractNick(String message) {
         int bracketIndex = message.indexOf(']');
+        int indx = 0;
         // Убедитесь, что скобка найдена и это не последний символ сообщения
         if (bracketIndex != -1 && message.length() > bracketIndex + 1) {
             // Проверяем, стоит ли двоеточие перед ']'
-            if (message.charAt(bracketIndex - 1) == ':') {
+            if (message.charAt(bracketIndex + 1) == ':') {
                 // Если да, то используем '[' как опорный индекс
                 int openBracketIndex = message.lastIndexOf('[', bracketIndex);
+                int FirstSpace = message.indexOf(' ');
+                for (int i = openBracketIndex - 2; message.charAt(i) != ' '; i--){
+                    indx = i;
+                }
                 if (openBracketIndex != -1) {
-                    return message.substring(openBracketIndex + 1, bracketIndex - 1).trim();
+                    return message.substring(indx, openBracketIndex - 1).trim();
                 }
             } else {
                 // Если нет, то берем слово после ']'
