@@ -1,5 +1,6 @@
 package com.example.examplemod;
 
+import com.example.examplemod.Discord.WebHook;
 import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.text.StringTextComponent;
@@ -21,8 +22,11 @@ import static net.minecraft.util.text.ChatType.CHAT;
 @Mod("examplemod")
 public class ExampleMod
 {
-    public String webhookUrl = "https://discord.com/api/webhooks/1203458825676652554/6jhlKV6wFmS0mlS9E39qmeIMuTZv5B8uXoZFDy12nd2JoW8-OVLBu_Sz_Zy_NyvcqXiL";
+    public String webhookUrl =
+"";
     public List<List<String>> ListReactions = new ArrayList();
+
+    public WebHook webHook = new WebHook(webhookUrl);
 
     public ExampleMod() {
         MinecraftForge.EVENT_BUS.register(this);
@@ -70,6 +74,7 @@ public class ExampleMod
     }
 
     public void ClearChat() {
+        assert Minecraft.getInstance().player != null;
         Minecraft.getInstance().player.chat("/clear");
     }
 
@@ -77,12 +82,12 @@ public class ExampleMod
         String Command = "/tempmute " + Nick + " " + Time + "m " + Arg + " -s";
         Minecraft.getInstance().player.sendMessage
         (
-                new StringTextComponent("Player -> " + Nick + " mute for a reason : " + Arg), null
+                new StringTextComponent("Игрок -> " + Nick + " замьючен по причине : " + Arg), null
         );
         Minecraft.getInstance().player.chat(Command);
 
-        String discordMessage = "Player Игрок " + Nick + " was muted for " + Time + " seconds. Reason: " + Arg;
-        sendDiscordWebhook(discordMessage, webhookUrl);
+        String discordMessage = "```Игрок " + Nick + " был замучен на " + Time + " секунд. Причина: " + Arg + "```";
+        webHook.Embed(discordMessage);
 
         Command = "";
     }
@@ -115,20 +120,4 @@ public class ExampleMod
         return null;
     }
 
-    public void sendDiscordWebhook(String message, String webhookUrl) {
-        try (CloseableHttpClient client = HttpClients.createDefault()) {
-            HttpPost httpPost = new HttpPost(webhookUrl);
-            httpPost.setHeader("Content-Type", "application/json");
-
-            JsonObject json = new JsonObject();
-            json.addProperty("content", message);
-
-            StringEntity entity = new StringEntity(json.toString());
-            httpPost.setEntity(entity);
-
-            client.execute(httpPost);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 }
