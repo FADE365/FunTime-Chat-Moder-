@@ -27,12 +27,16 @@ public class ExampleMod
     public ExampleMod() {
         MinecraftForge.EVENT_BUS.register(this);
 
-        ListReactions.add(Arrays.asList( //Ð¡Ð»Ð¾Ð²Ð° Ð´Ð»Ñ Ð¼ÑƒÑ‚Ð° Ð½Ð° 60 ÑÐµÐº
+        ListReactions.add(Arrays.asList( //Ñëîâà äëÿ ìóòà íà 60 ñåê
                         "test1", "test2"
                 )
         );
-        ListReactions.add(Arrays.asList( //Ð¡Ð»Ð¾Ð²Ð° Ð´Ð»Ñ Ð¼ÑƒÑ‚Ð° Ð½Ð° 15ÑÐµÐº
-                        "test3", "test4"
+        ListReactions.add(Arrays.asList( //Ñëîâà äëÿ ìóòà íà 15ñåê
+                        "test3", "test4", "Ïðèâåò"
+                )
+        );
+        ListReactions.add(Arrays.asList( //Ñëîâà äëÿ îò÷èñòêè ÷àòà
+                        "[chat]:"
                 )
         );
     }
@@ -45,15 +49,28 @@ public class ExampleMod
         String Nick = ExtractNick(message);
         Detected(message, Nick, 0, 60);
         Detected(message, Nick, 1, 15);
+        Detected(message, 2);
 
     }
 
     public void Detected(String MSG,String NICK, int INDEX, int TIME) {
         for (String react : ListReactions.get(INDEX)) {
             if ((MSG.toLowerCase().contains(react.toLowerCase()) && (NICK != null && !NICK.isEmpty()))) {
-                Mute(NICK, TIME, "Mute na " + TIME + "s");
+                Mute(NICK, TIME, "Ìóò íà " + TIME + "ñ");
             }
         }
+    }
+
+    public void Detected(String MSG, int INDEX) {
+        for (String react : ListReactions.get(INDEX)) {
+            if ((MSG.toLowerCase().contains(react.toLowerCase()))) {
+                ClearChat();
+            }
+        }
+    }
+
+    public void ClearChat() {
+        Minecraft.getInstance().player.chat("/clear");
     }
 
     public void Mute(String Nick, int Time, String Arg) {
@@ -64,7 +81,7 @@ public class ExampleMod
         );
         Minecraft.getInstance().player.chat(Command);
 
-        String discordMessage = "Player " + Nick + " was muted for " + Time + " seconds. Reason: " + Arg;
+        String discordMessage = "Player Èãðîê " + Nick + " was muted for " + Time + " seconds. Reason: " + Arg;
         sendDiscordWebhook(discordMessage, webhookUrl);
 
         Command = "";
@@ -73,11 +90,11 @@ public class ExampleMod
     private String ExtractNick(String message) {
         int bracketIndex = message.indexOf(']');
         int indx = 0;
-        // Ð£Ð±ÐµÐ´Ð¸Ñ‚ÐµÑÑŒ, Ñ‡Ñ‚Ð¾ ÑÐºÐ¾Ð±ÐºÐ° Ð½Ð°Ð¹Ð´ÐµÐ½Ð° Ð¸ ÑÑ‚Ð¾ Ð½Ðµ Ð¿Ð¾ÑÐ»ÐµÐ´Ð½Ð¸Ð¹ ÑÐ¸Ð¼Ð²Ð¾Ð» ÑÐ¾Ð¾Ð±Ñ‰ÐµÐ½Ð¸Ñ
+        // Óáåäèòåñü, ÷òî ñêîáêà íàéäåíà è ýòî íå ïîñëåäíèé ñèìâîë ñîîáùåíèÿ
         if (bracketIndex != -1 && message.length() > bracketIndex + 1) {
-            // ÐŸÑ€Ð¾Ð²ÐµÑ€ÑÐµÐ¼, ÑÑ‚Ð¾Ð¸Ñ‚ Ð»Ð¸ Ð´Ð²Ð¾ÐµÑ‚Ð¾Ñ‡Ð¸Ðµ Ð¿ÐµÑ€ÐµÐ´ ']'
+            // Ïðîâåðÿåì, ñòîèò ëè äâîåòî÷èå ïåðåä ']'
             if (message.charAt(bracketIndex + 1) == ':') {
-                // Ð•ÑÐ»Ð¸ Ð´Ð°, Ñ‚Ð¾ Ð¸ÑÐ¿Ð¾Ð»ÑŒÐ·ÑƒÐµÐ¼ '[' ÐºÐ°Ðº Ð¾Ð¿Ð¾Ñ€Ð½Ñ‹Ð¹ Ð¸Ð½Ð´ÐµÐºÑ
+                // Åñëè äà, òî èñïîëüçóåì '[' êàê îïîðíûé èíäåêñ
                 int openBracketIndex = message.lastIndexOf('[', bracketIndex);
                 int FirstSpace = message.indexOf(' ');
                 for (int i = openBracketIndex - 2; message.charAt(i) != ' '; i--){
@@ -87,7 +104,7 @@ public class ExampleMod
                     return message.substring(indx, openBracketIndex - 1).trim();
                 }
             } else {
-                // Ð•ÑÐ»Ð¸ Ð½ÐµÑ‚, Ñ‚Ð¾ Ð±ÐµÑ€ÐµÐ¼ ÑÐ»Ð¾Ð²Ð¾ Ð¿Ð¾ÑÐ»Ðµ ']'
+                // Åñëè íåò, òî áåðåì ñëîâî ïîñëå ']'
                 String afterBracket = message.substring(bracketIndex + 1).trim();
                 String[] words = afterBracket.split(" ");
                 if (words.length > 0) {
