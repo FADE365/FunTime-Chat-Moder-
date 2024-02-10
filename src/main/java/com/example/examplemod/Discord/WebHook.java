@@ -2,12 +2,12 @@ package com.example.examplemod.Discord;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import net.minecraft.client.Minecraft;
+import net.minecraft.util.text.ITextComponent;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-
-import java.awt.*;
 
 public class WebHook {
     private String URL;
@@ -15,9 +15,17 @@ public class WebHook {
         this.URL = WebHookURL;
     }
 
+    public void Embed(String message, String ModerNick) {
+        SendEmbed(message, "Модер : " + ModerNick);
+    }
+    public void Embed(String message) {
+        SendEmbed(message, "Активация");
+    }
+
     public void DefaultText(String message) {
         try (CloseableHttpClient client = HttpClients.createDefault()) {
             HttpPost httpPost = new HttpPost(URL);
+
             httpPost.setHeader("Content-Type", "application/json");
 
             JsonObject json = new JsonObject();
@@ -32,15 +40,16 @@ public class WebHook {
         }
     }
 
-    public void Embed(String message) {
+    private void SendEmbed(String message, String Title) {
         try (CloseableHttpClient client = HttpClients.createDefault()) {
             HttpPost httpPost = new HttpPost(URL);
+
             httpPost.setHeader("Content-Type", "application/json; charset=UTF-8");
 
             JsonObject embed = new JsonObject();
-            embed.addProperty("title", "Мут игрока");
+            embed.addProperty("title", Title);
             embed.addProperty("description", message);
-            embed.addProperty("color", 0xFF00FF); // Цвет полосы слева от сообщения в десятичном формате
+            embed.addProperty("color", 0xFF00FF); // Цвет полосы слева от сообщения
 
 
             // Добавляем встроенное сообщение к основному объекту JSON
@@ -57,5 +66,4 @@ public class WebHook {
             e.printStackTrace();
         }
     }
-
 }
