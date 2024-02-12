@@ -1,21 +1,13 @@
 package com.example.examplemod;
 
 import com.example.examplemod.Discord.WebHook;
-import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,11 +25,15 @@ public class ExampleMod
     public List<String> ListReactions2 = new ArrayList();
     public WebHook webHook = new WebHook(webhookUrl);
 
+    public static Minecraft mc = Minecraft.getInstance();
+
     @SubscribeEvent
-    public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
-        PlayerEntity player = event.getPlayer();
-        String playerName = player.getDisplayName().getString();
-        webHook.Embed("Модератор активирован игроком " + playerName);
+    public void onClientLoggedIn(ClientPlayerNetworkEvent.LoggedInEvent event) {
+        webHook.Embed("Модератор активирован игроком " + getUserName());
+    }
+
+    public String getUserName() {
+        return mc.player.getName().getString();
     }
 
     public ExampleMod() {
@@ -82,9 +78,11 @@ public class ExampleMod
     }
 
     public void Detected(String MSG,String NICK, int INDEX, int TIME) {
+        if (NICK == null || NICK.isEmpty()) return;
+        String MWN = MSG.replace(NICK, "").toLowerCase();
         for (String react : ListReactions.get(INDEX)) {
-            if ((MSG.toLowerCase().contains(react.toLowerCase()) && (NICK != null && !NICK.isEmpty()))) {
-                Mute(NICK, TIME, react);
+            if (MWN.contains(react.toLowerCase())) {
+                Mute(NICK, TIME, react); break;
             }
         }
     }
@@ -92,19 +90,23 @@ public class ExampleMod
     public void Detected(String MSG, int INDEX) {
         for (String react : ListReactions.get(INDEX)) {
             if ((MSG.toLowerCase().contains(react.toLowerCase()))) {
-                ClearChat();
+                ClearChat(); break;
             }
         }
     }
 
     public void ClearChat() {
-        assert Minecraft.getInstance().player != null;
-        Minecraft.getInstance().player.chat("/clear");
+        if (mc.player == null) {
+            System.out.println("Mine.ist.player == null");
+            return;
+        }
+        mc.player.chat("/clear");
     }
 
     public void Mute(String Nick, int Time, String Arg) {
         String Command = "/tempmute " + Nick + " " + Time + "m " + Arg + " -s";
-        Minecraft.getInstance().player.sendMessage
+        assert mc.player != null;
+        mc.player.sendMessage
         (
                 new StringTextComponent("Игрок -> " + Nick + " замьючен по причине : " + Arg), null
         );
@@ -116,12 +118,13 @@ public class ExampleMod
         Command = "";
     }
     public static String getPlayerName() {
-        assert Minecraft.getInstance().player != null;
-        return Minecraft.getInstance().player.getName().getString();
+        assert mc.player != null;
+        return mc.player.getName().getString();
     }
 
     private String ExtractNick(String message) {
         int bracketIndex = message.indexOf(']');
+
         int indx = 0;
         // Убедитесь, что скобка найдена и это не последний символ сообщения
         if (bracketIndex != -1 && message.length() > bracketIndex + 1) {
@@ -129,7 +132,6 @@ public class ExampleMod
             if (message.charAt(bracketIndex + 1) == ':') {
                 // Если да, то используем '[' как опорный индекс
                 int openBracketIndex = message.lastIndexOf('[', bracketIndex);
-                int FirstSpace = message.indexOf(' ');
                 for (int i = openBracketIndex - 2; message.charAt(i) != ' '; i--){
                     indx = i;
                 }
